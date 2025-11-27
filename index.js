@@ -17,7 +17,7 @@ const ALERT_CHANNEL_ID = process.env.ALERT_CHANNEL_ID;
 
 let watchlist = new Collection();
 
-client.once('clientReady', () => {
+client.once('ready', () => {
   console.log(`Logged in as ${client.user.tag}`);
   scanWatchlist();
   setInterval(scanWatchlist, 1 * 60 * 1000); // Skannaa listaa minuutin välein jotta jää näädät kiikkiin!
