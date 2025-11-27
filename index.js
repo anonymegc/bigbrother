@@ -1,22 +1,14 @@
 require('dotenv').config();
+const express = require('express');
 const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
 
-client.once("clientReady", async () => {
-  console.log(`Logged in as ${client.user.tag}`);
+// --- KEEP RENDER ALIVE ---
+const PORT = process.env.PORT || 10000;
+const app = express();
+app.get('/', (req, res) => res.send('✅ Big Brother bot running!'));
+app.listen(PORT, () => console.log(`🌐 HTTP server alive on port ${PORT}`));
 
-  await scanWatchlist();
-
-  const guild = await client.guilds.fetch(GUILD_ID);
-  await guild.members.fetch();
-
-  // Tarkistetaan kaikki nykyiset jäsenet heti alussa
-  await Promise.all(guild.members.cache.values().map(member => checkMemberAgainstWatchlist(member)));
-});
-
-// Tarkistetaan kaikki jäsenet rinnakkain
-  await Promise.all(guild.members.cache.values().map(member => checkMemberAgainstWatchlist(member)));
-});
-
+// --- DISCORD CLIENT ---
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -103,6 +95,22 @@ async function scanWatchlist() {
 }
 
 // ------------------------
+// READY
+// ------------------------
+client.once("clientReady", async () => {
+  console.log(`Logged in as ${client.user.tag}`);
+
+  await scanWatchlist();
+
+  const guild = await client.guilds.fetch(GUILD_ID);
+  await guild.members.fetch();
+
+  await Promise.all(
+    guild.members.cache.map(member => checkMemberAgainstWatchlist(member))
+  );
+});
+
+// ------------------------
 // JÄSEN LIITTYY
 // ------------------------
 client.on("guildMemberAdd", async (member) => {
@@ -110,7 +118,7 @@ client.on("guildMemberAdd", async (member) => {
 });
 
 // ------------------------
-// UUSI NIMI WATCHLISTIIN
+// UUSI WATCHLIST MERKINTÄ
 // ------------------------
 client.on("messageCreate", async (message) => {
   if (message.channel.id !== WATCHLIST_CHANNEL_ID || message.author.bot) return;
@@ -124,5 +132,9 @@ client.on("messageCreate", async (message) => {
   const guild = await client.guilds.fetch(GUILD_ID);
   await guild.members.fetch();
 
+  await Promise.all(
+    guild.members.cache.map(member => checkMemberAgainstWatchlist(member))
+  );
+});
 
 client.login(process.env.TOKEN);
