@@ -13,24 +13,27 @@ const client = new Client({
 const WATCHLIST_CHANNEL_ID = process.env.WATCHLIST_CHANNEL_ID;
 const ALERT_CHANNEL_ID = process.env.ALERT_CHANNEL_ID;
 const GUILD_ID = process.env.GUILD_ID;
-const KEEP_ALIVE_URL = process.env.KEEP_ALIVE_URL;
 
 let watchlist = new Collection();
+let alreadyAlerted = new Set(); // Pitää kirjaa jo lähetetyistä alert-viesteistä
 
+// Tarkistaa jäsenen watchlistiä vastaan
 async function checkMemberAgainstWatchlist(member) {
   const joinedName = member.user.username.toLowerCase();
   const joinedTag = member.user.tag.toLowerCase();
   const joinedId = member.id;
 
   for (const entry of watchlist.values()) {
-    if (entry.includes(joinedName) || entry.includes(joinedTag) || entry.includes(joinedId)) {
+    const key = `${joinedId}-${entry}`;
+    if ((entry.includes(joinedName) || entry.includes(joinedTag) || entry.includes(joinedId))
+        && !alreadyAlerted.has(key)) {
       await sendAlert(member, entry);
-      break;
+      alreadyAlerted.add(key);
     }
   }
 }
 
-// Tää funktio lähettää alert-viestin jne
+// Alert-viestin lähetys
 async function sendAlert(member, matchedWord) {
   try {
     const alertChannel = await client.channels.fetch(ALERT_CHANNEL_ID);
@@ -52,32 +55,31 @@ async function sendAlert(member, matchedWord) {
   }
 }
 
-// Näyttää logeihin et homma rokkaa
+// Ready-event
 client.once('ready', async () => {
   console.log(`Logged in as ${client.user.tag}`);
 
   await scanWatchlist();
 
-  // Skannaa kaikki nykyiset jäsenet
   const guild = await client.guilds.fetch(GUILD_ID);
-  await guild.members.fetch(); // Hakee kaikki jäsenet cacheen
+  await guild.members.fetch();
 
+  // Tarkistaa kaikki nykyiset jäsenet watchlistiä vastaan
   guild.members.cache.forEach(member => {
     checkMemberAgainstWatchlist(member);
   });
 
-  // Skannaa watchlistiä minuutin välein
+  // Päivittää watchlistiä minuutin välein
   setInterval(scanWatchlist, 1 * 60 * 1000);
 });
 
-// Watchlistin skannausmekanismi:
+// Watchlistin skannaus
 async function scanWatchlist() {
   try {
     const channel = await client.channels.fetch(WATCHLIST_CHANNEL_ID);
     if (!channel) return;
 
     const messages = await channel.messages.fetch({ limit: 100 });
-
     watchlist.clear();
 
     messages.forEach(msg => {
@@ -93,12 +95,12 @@ async function scanWatchlist() {
   }
 }
 
-// Kun uus hessu saapuu:
+// Kun uusi jäsen liittyy
 client.on("guildMemberAdd", async (member) => {
   checkMemberAgainstWatchlist(member);
 });
 
-// Kun lisätää watchlistille uus nimi niin botti tekee seuraavan:
+// Kun lisätään uusi nimi watchlistille
 client.on("messageCreate", async (message) => {
   if (message.channel.id === WATCHLIST_CHANNEL_ID && !message.author.bot) {
     const cleaned = message.content.trim().toLowerCase().replace(/\s+/g, " ");
@@ -108,16 +110,14 @@ client.on("messageCreate", async (message) => {
     console.log(`Uusi nimi lisätty watchlistille: "${cleaned}"`);
 
     const guild = await client.guilds.fetch(GUILD_ID);
-    await guild.members.fetch(); // varmista että cache on täynnä
+    await guild.members.fetch();
 
-    // Skannaa vain uuden nimikkeen osalta
+    // Tarkistaa vain uuden watchlist-nimen
     guild.members.cache.forEach(member => {
-      const joinedName = member.user.username.toLowerCase();
-      const joinedTag = member.user.tag.toLowerCase();
-      const joinedId = member.id;
-      const key = `${joinedId}-${cleaned}`;
-
-      if ((cleaned.includes(joinedName) || cleaned.includes(joinedTag) || cleaned.includes(joinedId))
+      const key = `${member.id}-${cleaned}`;
+      if ((cleaned.includes(member.user.username.toLowerCase())
+           || cleaned.includes(member.user.tag.toLowerCase())
+           || cleaned.includes(member.id))
           && !alreadyAlerted.has(key)) {
         sendAlert(member, cleaned);
         alreadyAlerted.add(key);
