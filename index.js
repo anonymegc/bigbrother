@@ -97,7 +97,7 @@ async function scanWatchlist() {
 // ------------------------
 // READY
 // ------------------------
-client.once("clientReady", async () => {
+client.once("ready", async () => {
   console.log(`Logged in as ${client.user.tag}`);
 
   await scanWatchlist();
