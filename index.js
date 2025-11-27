@@ -1,6 +1,4 @@
 require('dotenv').config();
-require('./keepalive'); // Laitoin tän ihan vaan että renderin "Free tier" ei ota itteensä et on epäaktiivinen botti
-
 const { Client, GatewayIntentBits, EmbedBuilder, Collection } = require('discord.js');
 
 const client = new Client({
@@ -15,10 +13,10 @@ const client = new Client({
 const WATCHLIST_CHANNEL_ID = process.env.WATCHLIST_CHANNEL_ID;
 const ALERT_CHANNEL_ID = process.env.ALERT_CHANNEL_ID;
 const GUILD_ID = process.env.GUILD_ID;
+const KEEP_ALIVE_URL = process.env.KEEP_ALIVE_URL;
 
 let watchlist = new Collection();
 
-// Tää alla oleva functio tsekkaa näit watchlistil olevii idiootteja:
 async function checkMemberAgainstWatchlist(member) {
   const joinedName = member.user.username.toLowerCase();
   const joinedTag = member.user.tag.toLowerCase();
@@ -32,7 +30,7 @@ async function checkMemberAgainstWatchlist(member) {
   }
 }
 
-// Tää functio kattoo et jos tulee BINGO ni pistää viestiä asiaan
+// Tää funktio lähettää alert-viestin jne
 async function sendAlert(member, matchedWord) {
   try {
     const alertChannel = await client.channels.fetch(ALERT_CHANNEL_ID);
@@ -48,13 +46,13 @@ async function sendAlert(member, matchedWord) {
       .setThumbnail(member.user.displayAvatarURL())
       .setTimestamp();
 
-    alertChannel.send({ embeds: [embed] });
+    await alertChannel.send({ embeds: [embed] });
   } catch (err) {
     console.error("Error viestin lähetyksessä:", err);
   }
 }
 
-// Ready-event
+// Näyttää logeihin et homma rokkaa
 client.once('ready', async () => {
   console.log(`Logged in as ${client.user.tag}`);
 
@@ -62,16 +60,17 @@ client.once('ready', async () => {
 
   // Skannaa kaikki nykyiset jäsenet
   const guild = await client.guilds.fetch(GUILD_ID);
-  await guild.members.fetch(); // hakee kaikki jäsenet välimuistiin
+  await guild.members.fetch(); // Hakee kaikki jäsenet cacheen
 
   guild.members.cache.forEach(member => {
     checkMemberAgainstWatchlist(member);
   });
 
-  setInterval(scanWatchlist, 1 * 60 * 1000); // skannaa watchlistillä olevat viestit minuutin välein
+  // Skannaa watchlistiä minuutin välein
+  setInterval(scanWatchlist, 1 * 60 * 1000);
 });
 
-// Watchlistin skannaus
+// Watchlistin skannausmekanismi:
 async function scanWatchlist() {
   try {
     const channel = await client.channels.fetch(WATCHLIST_CHANNEL_ID);
@@ -94,9 +93,27 @@ async function scanWatchlist() {
   }
 }
 
-// Uuden jäsenen liittyessä servulle:
+// Kun uus hessu saapuu:
 client.on("guildMemberAdd", async (member) => {
   checkMemberAgainstWatchlist(member);
+});
+
+// Kun lisätää watchlistille uus nimi niin botti tekee seuraavan:
+client.on("messageCreate", async (message) => {
+  if (message.channel.id === WATCHLIST_CHANNEL_ID && !message.author.bot) {
+    const cleaned = message.content.trim().toLowerCase().replace(/\s+/g, " ");
+    if (cleaned.length === 0) return;
+
+    watchlist.set(message.id, cleaned);
+    console.log(`Uusi nimi lisätty watchlistille: "${cleaned}"`);
+
+    const guild = await client.guilds.fetch(GUILD_ID);
+    await guild.members.fetch();
+
+    guild.members.cache.forEach(member => {
+      checkMemberAgainstWatchlist(member);
+    });
+  }
 });
 
 client.login(process.env.TOKEN);
