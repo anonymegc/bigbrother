@@ -1,6 +1,22 @@
 require('dotenv').config();
 const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
 
+client.once("clientReady", async () => {
+  console.log(`Logged in as ${client.user.tag}`);
+
+  await scanWatchlist();
+
+  const guild = await client.guilds.fetch(GUILD_ID);
+  await guild.members.fetch();
+
+  // Tarkistetaan kaikki nykyiset jäsenet heti alussa
+  await Promise.all(guild.members.cache.values().map(member => checkMemberAgainstWatchlist(member)));
+});
+
+// Tarkistetaan kaikki jäsenet rinnakkain
+  await Promise.all(guild.members.cache.values().map(member => checkMemberAgainstWatchlist(member)));
+});
+
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -108,23 +124,5 @@ client.on("messageCreate", async (message) => {
   const guild = await client.guilds.fetch(GUILD_ID);
   await guild.members.fetch();
 
-  // Tarkistetaan kaikki jäsenet rinnakkain
-  await Promise.all(guild.members.cache.values().map(member => checkMemberAgainstWatchlist(member)));
-});
-
-// ------------------------
-// READY
-// ------------------------
-client.once("ready", async () => {
-  console.log(`Logged in as ${client.user.tag}`);
-
-  await scanWatchlist();
-
-  const guild = await client.guilds.fetch(GUILD_ID);
-  await guild.members.fetch();
-
-  // Tarkistetaan kaikki nykyiset jäsenet heti alussa
-  await Promise.all(guild.members.cache.values().map(member => checkMemberAgainstWatchlist(member)));
-});
 
 client.login(process.env.TOKEN);
