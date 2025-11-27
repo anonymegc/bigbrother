@@ -1,1 +1,16 @@
-gg
+{
+  "name": "bigbrother",
+  "version": "1.0.0",
+  "description": "Tämä botti on luotu tarkkailemaan teidän näätien tekemisiä sekä seuraamaan watchlistiä. Jos joku hessu liittyy teiän Discordiin ja tämä kusikoodi huomaa samaisen käyttäjän olevan watchlistillä niin tämä ilmoittaa siitä ylläpidolle tai mille ikinä nistipoppoolle ja heittää voltin.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "OhtoGangg",
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^14.14.0",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2"
+  }
+}
