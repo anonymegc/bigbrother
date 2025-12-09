@@ -17,7 +17,7 @@ module.exports = {
         const embed = new EmbedBuilder()
             .setTitle("Avaa uusi tiketti!")
             .setDescription("Valikoi mikä aiheista kuvastaa ongelmaasi parhaiten alta:")
-            .setColor("Violet");
+            .setColor("Green");
 
         const button = new ButtonBuilder()
             .setCustomId("create_ticket")
@@ -98,7 +98,7 @@ module.exports = {
         const embed = new EmbedBuilder()
             .setTitle(`Tiketti: ${selected}`)
             .setDescription(`Kerro mitä tikettisi koskee.\nHenkilökunta käsittelee tämän mahdollisimman hyvin tietojesi perusteella.`)
-            .setColor("Violet");
+            .setColor("Green");
 
         const closeButton = new ButtonBuilder()
             .setCustomId("close_ticket")
