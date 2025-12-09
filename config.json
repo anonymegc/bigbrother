@@ -1,7 +1,7 @@
 {
     "channels": {
-        "welcomechannel": "1443628803690729634",
-        "logchannel": "1447911516622819378",
+        "welcomeChannel": "1443628803690729634",
+        "logChannel": "1447911516622819378",
         "twitchalerts": "1447911601079324813"
     }
 }
