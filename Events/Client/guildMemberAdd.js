@@ -2,8 +2,8 @@ module.exports = {
     name: "guildMemberAdd",
     async execute(member) {
         const guild = member.guild
-        const welcomeChannel = guild.channels.cache.get("924976921874423809")
-        const welcomeRole = guild.roles.cache.get("861926084689002506")
+        const channel = client.channels.cache.get(config.channels.welcomeChannel)
+        const welcomeRole = guild.roles.cache.get("1447942712970973245")
 
         if (!welcomeChannel || !welcomeRole) {
             console.error("Welcome channel or role not found.")
