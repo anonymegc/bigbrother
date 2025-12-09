@@ -1,5 +1,6 @@
+const path = require("path");
+const config = require(path.resolve(__dirname, "../config.json"));
 const { EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder, StringSelectMenuBuilder, ChannelType, PermissionFlagsBits } = require("discord.js");
-const config = require("../../config.json");
 
 module.exports = {
     // Lähetä ticket-panel kanavalle
