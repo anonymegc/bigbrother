@@ -1,4 +1,5 @@
 const path = require("path");
+const fs = require("fs");
 const config = require(path.resolve(__dirname, "../config.json"));
 const { 
     EmbedBuilder, 
@@ -36,7 +37,7 @@ module.exports = {
             if (interaction.isButton()) {
                 if (interaction.customId === "create_ticket") {
                     await this.showTicketMenu(interaction);
-                } else if (interaction.customId.startsWith("close_ticket")) {
+                } else if (interaction.customId === "close_ticket") {
                     await this.closeTicket(interaction);
                 }
             }
@@ -88,7 +89,7 @@ module.exports = {
                 { id: config.ticket.roleYllapito, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] },
                 { id: config.ticket.roleValvoja, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] },
                 { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
-                { id: guild.members.me.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] } // tämä on botin oma
+                { id: guild.members.me.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] } // botin oikeudet
             ]
         });
 
@@ -109,6 +110,68 @@ module.exports = {
         await interaction.editReply({ content: `Ticket luotu: ${channel}` });
     },
 
+    // Sulje ticket ja arkistoi
+    async closeTicket(interaction) {
+        const channel = interaction.channel;
+        if (!channel) return interaction.reply({ content: "Kanavaa ei löytynyt.", ephemeral: true });
+
+        const userClosing = interaction.user;
+
+        await interaction.reply({ content: "Ticket suljetaan 10 sekunnin kuluttua...", ephemeral: true });
+
+        setTimeout(async () => {
+            try {
+                const archiveChannel = interaction.guild.channels.cache.get(config.ticket.archiveChannelId);
+                if (!archiveChannel) return channel.send("Arkisto-kanavaa ei löytynyt.");
+
+                // Hae viestit ja kerää osallistujat
+                const messages = await channel.messages.fetch({ limit: 100 });
+                const participants = [...new Set(messages.map(m => m.author.tag))];
+                const ticketCreator = messages.last()?.author.tag || "Tuntematon";
+
+                // Luo HTML-transcript
+                let html = `<html><body>`;
+                html += `<h2>${channel.name}</h2>`;
+                html += `<p><strong>Aihe:</strong> ${channel.name.split('-')[1]}</p>`;
+                html += `<hr>`;
+                messages.reverse().forEach(m => {
+                    html += `<p><strong>${m.author.tag}:</strong> ${m.content}</p>`;
+                });
+                html += `<hr></body></html>`;
+
+                const filePath = `./transcript-${channel.name}.html`;
+                fs.writeFileSync(filePath, html);
+
+                // Luo Embed meta-tiedoilla
+                const embed = new EmbedBuilder()
+                    .setTitle(`Ticket arkistoitu: ${channel.name}`)
+                    .addFields(
+                        { name: "Tiketin nimi", value: channel.name, inline: true },
+                        { name: "Aihe", value: channel.name.split('-')[1], inline: true },
+                        { name: "Luonut", value: ticketCreator, inline: true },
+                        { name: "Osallistujat", value: participants.join(", ") || "Ei osallistujia", inline: false },
+                        { name: "Sulki", value: userClosing.tag, inline: true }
+                    )
+                    .setColor("Grey");
+
+                // Lähetä arkisto-kanavalle embed + transcript.html
+                await archiveChannel.send({
+                    embeds: [embed],
+                    files: [filePath]
+                });
+
+                // Poista temp-tiedosto
+                fs.unlinkSync(filePath);
+
+                // Poista kanava
+                await channel.delete();
+
+            } catch (err) {
+                console.error("Virhe ticketin sulkemisessa:", err);
+            }
+        }, 10000);
+    },
+
     // Lisää jäsen ticket-kanavaan
     async addMember(interaction, member) {
         const channel = interaction.channel;
@@ -125,24 +188,5 @@ module.exports = {
 
         await channel.permissionOverwrites.delete(member.id);
         await interaction.reply({ content: `${member} poistettu ticketistä!`, ephemeral: true });
-    },
-
-    // Sulje ticket
-    async closeTicket(interaction) {
-        const channel = interaction.channel;
-        if (!channel) return interaction.reply({ content: "Kanavaa ei löytynyt.", ephemeral: true });
-
-        await interaction.reply({ content: "Ticket suljetaan 10 sekunnin kuluttua...", ephemeral: true });
-
-        setTimeout(async () => {
-            const archiveChannel = interaction.guild.channels.cache.get(config.ticket.archiveChannelId);
-            if (archiveChannel) {
-                const messages = await channel.messages.fetch({ limit: 100 });
-                const archiveText = messages.map(m => `${m.author.tag}: ${m.content}`).join("\n");
-                await archiveChannel.send({ content: `Tiketti ${channel.name} arkistoitu:\n\n${archiveText}` });
-            }
-
-            await channel.delete().catch(console.error);
-        }, 10000);
     }
 };
