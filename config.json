@@ -1,5 +1,4 @@
 {
-    "token": "process.env.TOKEN",
     "channels": {
         "welcomechannel": "1443628803690729634",
         "logchannel": "1447911516622819378",
