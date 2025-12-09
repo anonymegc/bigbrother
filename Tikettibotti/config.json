@@ -1,0 +1,8 @@
+{
+    "token": "token",
+    "channels": {
+        "welcomechannel": "channelID",
+        "logchannel": "channelID",
+        "twitchalerts": "channelID"
+    }
+}
