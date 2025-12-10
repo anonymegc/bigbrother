@@ -12,7 +12,7 @@ let guildCache = null;
 
 module.exports = (client) => {
 
-    console.log("✅ Watchlist moduuli ladattu");
+    console.log("👁️  Aloitetaan tarkkailu, isoveli valvoo"); // <-- debug log heti alussa
 
     // --- Lähetä alertti ---
     async function sendAlert(member, matchedWord) {
@@ -79,7 +79,6 @@ module.exports = (client) => {
     client.once("ready", async () => {
         console.log(`✅ Watchlist ready | Logged in as ${client.user.tag}`);
 
-        // Hae guild ja jäsenet
         try {
             guildCache = await client.guilds.fetch(GUILD_ID);
             await guildCache.members.fetch();
@@ -101,9 +100,10 @@ module.exports = (client) => {
 
     // --- Uusi viesti watchlist-kanavalla ---
     client.on("messageCreate", async (message) => {
-        console.log(`📩 Message received in ${message.channel.id} from ${message.author.tag}`);
+        if (message.channel.id !== WATCHLIST_CHANNEL_ID) return;
+        if (message.author.bot) return;
 
-        if (message.channel.id !== WATCHLIST_CHANNEL_ID || message.author.bot) return;
+        console.log(`📩 Message received in watchlist channel from ${message.author.tag}: "${message.content}"`);
 
         const cleaned = message.content.trim().toLowerCase().replace(/\s+/g, " ");
         if (cleaned.length === 0) return;
