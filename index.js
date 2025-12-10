@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const { Client, GatewayIntentBits, Partials, Collection } = require('discord.js');
-const config = require('./config.json'); // polku suhteessa index.js
+const config = require('./config.json'); // oikea polku index.js:stä
 
 // -----------------------------
 // EXPRESS KEEP-ALIVE
@@ -54,12 +54,12 @@ process.on('uncaughtException', (error) => {
 // -----------------------------
 // LADATAAN WATCHLIST
 // -----------------------------
-const watchlist = require('./functions/watchlist')(client); // korjattu polku
+const watchlist = require('./functions/watchlist')(client); // Pienillä kirjaimilla
 
 // -----------------------------
 // LADATAAN EVENTIT
 // -----------------------------
-const { loadEvents } = require('./handlers/eventHandler'); // korjattu polku
+const { loadEvents } = require('./handlers/eventHandler'); // Pienillä kirjaimilla
 loadEvents(client);
 
 // -----------------------------
@@ -76,6 +76,7 @@ client.once("ready", async () => {
     await guild.members.fetch();
     watchlist.setGuildCache(guild);
 
+    // Tarkistetaan watchlist kaikille jäsenille
     guild.members.cache.forEach(member => watchlist.checkMemberAgainstWatchlist(member));
 });
 
