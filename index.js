@@ -8,20 +8,18 @@ const {
     EmbedBuilder 
 } = require('discord.js');
 
-const { loadEvents } = require("./handlers/eventHandler");
+// CONFIG
+const config = require('./config.json');
+const GUILD_ID = config.guildID;
 
-// -----------------------------
-// EXPRESS KEEP-ALIVE (Render yms.)
-// -----------------------------
+// EXPRESS KEEP-ALIVE
 const PORT = process.env.PORT || 10000;
 const app = express();
 
 app.get('/', (req, res) => res.send('✅ Big Brother bot running!'));
 app.listen(PORT, () => console.log(`🌐 HTTP server alive on port ${PORT}`));
 
-// -----------------------------
-// LUODAAN YKSI JA AINOA CLIENT
-// -----------------------------
+// LUODAAN CLIENT
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -43,14 +41,10 @@ const client = new Client({
     ]
 });
 
-// -----------------------------
-// EXPORT (jos joku tiedosto tarvitsee)
-// -----------------------------
+// EXPORT (jos joku tarvitsee clientin)
 module.exports = client;
 
-// -----------------------------
-// DISCORD COLLECTIONS
-// -----------------------------
+// COLLECTIONS
 client.events = new Collection();
 client.commands = new Collection();
 
@@ -64,28 +58,17 @@ process.on('uncaughtException', (error) => {
     console.error('Unhandled Exception:', error);
 });
 
-// -----------------------------
-// LADATAAN WATCHLIST
-// -----------------------------
+// LADATAAN WATCHLIST (client annetaan parametrina)
 const watchlist = require("./functions/watchlist")(client);
 
-// -----------------------------
 // LADATAAN EVENTIT
-// -----------------------------
+const { loadEvents } = require("./handlers/eventHandler");
 loadEvents(client);
 
-// -----------------------------
-// CONFIG / ENV
-// -----------------------------
-const GUILD_ID = process.env.GUILD_ID;
 
-// -----------------------------
-// BOT READY
-// -----------------------------
 client.once("ready", async () => {
     console.log(`Logged in as ${client.user.tag}`);
 
-    // Päivitetään watchlist kanavasta
     if (watchlist && typeof watchlist.scanWatchlist === "function") {
         await watchlist.scanWatchlist();
     }
@@ -95,7 +78,5 @@ client.once("ready", async () => {
     await guildCache.members.fetch();
 });
 
-// -----------------------------
 // BOT LOGIN
-// -----------------------------
 client.login(process.env.TOKEN);
