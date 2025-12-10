@@ -55,7 +55,6 @@ process.on('uncaughtException', (error) => {
 // -----------------------------
 // LADATAAN WATCHLIST
 // -----------------------------
-// Render ja Node ovat case-sensitive → kansio pienellä
 const watchlist = require('./Functions/watchlist')(client);
 
 // -----------------------------
@@ -70,19 +69,19 @@ loadEvents(client);
 client.once("ready", async () => {
     console.log(`Logged in as ${client.user.tag}`);
 
-    // Päivitetään watchlist ennen tarkistusta
-    if (watchlist && typeof watchlist.scanWatchlist === "function") {
-        await watchlist.scanWatchlist();
-    }
-
-    // Hae guild ja jäsenten cache
+    // Hae guild ja jäsenten cache ensin
     const guild = await client.guilds.fetch(config.guildID);
     await guild.members.fetch();
     watchlist.setGuildCache(guild);
 
+    // Päivitä watchlist kanavasta
+    if (watchlist && typeof watchlist.scanWatchlist === "function") {
+        await watchlist.scanWatchlist();
+    }
+
     console.log("Tarkistetaan watchlist kaikille jäsenille käynnistyksen yhteydessä...");
 
-    // Käydään läpi kaikki jäsenet
+    // Käydään läpi kaikki jäsenet guildin cachesta
     guild.members.cache.forEach(member => watchlist.checkMemberAgainstWatchlist(member));
 });
 
@@ -104,7 +103,10 @@ client.on("messageCreate", async (message) => {
     console.log(`Uusi watchlist-merkintä kanavasta: "${cleaned}"`);
     watchlist.addWatchlistEntry(cleaned);
 
-    watchlist.getGuildCache()?.members.cache.forEach(member => {
+    const guild = watchlist.getGuildCache();
+    if (!guild) return;
+
+    guild.members.cache.forEach(member => {
         console.log(`Tarkistetaan ${member.user.tag} watchlistia vasten`);
         watchlist.checkMemberAgainstWatchlist(member);
     });
