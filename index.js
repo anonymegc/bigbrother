@@ -67,29 +67,30 @@ loadEvents(client);
 // BOT READY
 // -----------------------------
 client.once("ready", async () => {
-    console.log(`Logged in as ${client.user.tag}`);
+    console.log(`✅ Logged in as ${client.user.tag}`);
 
     try {
         // --- Hae guild ja jäsenet ---
         const guild = await client.guilds.fetch(config.guildID);
         await guild.members.fetch();
+        console.log("📦 Guild ja jäsenet haettu");
 
         // --- Lähetä ticket-panel ---
-        const channel = await guild.channels.fetch(config.channels.ticketsChannel);
+        const channel = await guild.channels.fetch(config.ticket.ticketPanelChannelId);
         await ticket.sendTicketPanel(channel);
-        console.log("🎫 Ticket-panel lähetetty kanavalle.");
+        console.log("🎫 Ticket-panel lähetetty kanavalle");
 
         // --- Käynnistä watchlist vasta ticketin jälkeen ---
         try {
             const watchlistModule = require('./Functions/watchlist')(client);
-            await watchlistModule.startWatching(); // <-- tärkeä
-            console.log("👁️ Watchlist moduuli käynnistetty");
+            await watchlistModule.startWatching();
+            console.log("👁️ Watchlist moduuli käynnistetty - isoveli valvoo!");
         } catch (err) {
             console.error("❌ Watchlist-moduulin käynnistys epäonnistui:", err);
         }
 
     } catch (err) {
-        console.error("Virhe ready-eventissä:", err);
+        console.error("❌ Virhe ready-eventissä:", err);
     }
 });
 
@@ -115,4 +116,8 @@ client.on('interactionCreate', async (interaction) => {
 // -----------------------------
 // LOGIN
 // -----------------------------
-client.login(process.env.TOKEN);
+client.login(process.env.TOKEN).then(() => {
+    console.log("🔑 Bot kirjautunut sisään, TOKEN käytetty");
+}).catch(err => {
+    console.error("❌ Bot kirjautuminen epäonnistui:", err);
+});
