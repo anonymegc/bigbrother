@@ -46,14 +46,14 @@ module.exports = (client) => {
             const key = `${id}-${entry}`;
             if (alreadyAlerted.has(key)) continue;
 
-            if (entry.includes(id) || entry.includes(username) || entry.includes(tag)) {
+            if (entry === id || entry === username || entry === tag) {
                 await sendAlert(member, entry);
                 alreadyAlerted.add(key);
             }
         }
     }
 
-    // 📌 Päivittää watchlistin kanavasta
+    // 📌 Päivittää watchlistin kanavasta ja tarkistaa olemassa olevat jäsenet
     async function scanWatchlist() {
         try {
             const channel = await client.channels.fetch(WATCHLIST_CHANNEL_ID);
@@ -69,8 +69,26 @@ module.exports = (client) => {
             }
 
             console.log("Watchlist päivitetty:", watchlist.size, "merkintää");
+
+            // Käydään läpi kaikki jo olemassa olevat jäsenet
+            if (guildCache) {
+                guildCache.members.cache.forEach(member => checkMemberAgainstWatchlist(member));
+            }
         } catch (err) {
             console.error("Error scanning watchlist:", err);
+        }
+    }
+
+    // Lisää watchlistiin uuden merkinnän ja tarkistaa jäsenet
+    async function addWatchlistEntry(entry) {
+        if (!entry || entry.trim().length === 0) return;
+
+        const cleaned = entry.trim().toLowerCase().replace(/\s+/g, " ");
+        watchlist.add(cleaned);
+        console.log(`Uusi watchlist-merkintä: "${cleaned}"`);
+
+        if (guildCache) {
+            guildCache.members.cache.forEach(member => checkMemberAgainstWatchlist(member));
         }
     }
 
@@ -79,6 +97,6 @@ module.exports = (client) => {
         checkMemberAgainstWatchlist,
         getGuildCache: () => guildCache,
         setGuildCache: (g) => guildCache = g,
-        addWatchlistEntry: (entry) => watchlist.add(entry)
+        addWatchlistEntry
     };
 };
