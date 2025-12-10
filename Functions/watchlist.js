@@ -12,14 +12,13 @@ let guildCache = null;
 
 module.exports = (client) => {
 
-    console.log("👁️  Aloitetaan tarkkailu, isoveli valvoo"); // <-- debug log heti alussa
+    console.log("👁️ Aloitetaan tarkkailu, isoveli valvoo");
 
     // --- Lähetä alertti ---
     async function sendAlert(member, matchedWord) {
         try {
             const channel = await client.channels.fetch(ALERT_CHANNEL_ID);
-            if (!channel) return console.error("⚠️ Alert-kanavaa ei löydy");
-
+            if (!channel) return;
             const embed = new EmbedBuilder()
                 .setTitle("📢 BINGO!")
                 .setColor(0xFF0000)
@@ -30,9 +29,7 @@ module.exports = (client) => {
                 )
                 .setThumbnail(member.user.displayAvatarURL())
                 .setTimestamp();
-
             await channel.send({ embeds: [embed] });
-            console.log(`🚨 Alert lähetetty: ${member.user.tag} / "${matchedWord}"`);
         } catch (err) {
             console.error("Error viestin lähetyksessä:", err);
         }
@@ -41,15 +38,12 @@ module.exports = (client) => {
     // --- Tarkista jäsen watchlistia vastaan ---
     async function checkMemberAgainstWatchlist(member) {
         if (!member || !member.user) return;
-
         const username = member.user.username.toLowerCase();
         const tag = member.user.tag.toLowerCase();
         const id = member.id;
-
         for (const entry of watchlist) {
             const key = `${id}-${entry}`;
             if (alreadyAlerted.has(key)) continue;
-
             if (entry.includes(id) || entry.includes(username) || entry.includes(tag)) {
                 await sendAlert(member, entry);
                 alreadyAlerted.add(key);
@@ -61,62 +55,49 @@ module.exports = (client) => {
     async function scanWatchlist() {
         try {
             const channel = await client.channels.fetch(WATCHLIST_CHANNEL_ID);
-            if (!channel) return console.error("⚠️ Watchlist-kanavaa ei löydy");
-
+            if (!channel) return;
             const messages = await channel.messages.fetch({ limit: 100 });
             watchlist.clear();
             for (const msg of messages.values()) {
                 const cleaned = msg.content.trim().toLowerCase().replace(/\s+/g, " ");
                 if (cleaned.length > 0) watchlist.add(cleaned);
             }
-            console.log(`✅ Watchlist päivitetty: ${watchlist.size} merkintää`);
+            console.log(`📜 Watchlist päivitetty: ${watchlist.size} merkintää`);
         } catch (err) {
             console.error("Error scanning watchlist:", err);
         }
     }
 
-    // --- Ready-event ---
-    client.once("ready", async () => {
-        console.log(`✅ Watchlist ready | Logged in as ${client.user.tag}`);
-
+    // --- Ready-event (käynnistetään ready-eventin sisällä indexistä) ---
+    async function startWatching() {
         try {
             guildCache = await client.guilds.fetch(GUILD_ID);
             await guildCache.members.fetch();
+            await scanWatchlist();
+
+            // Käydään läpi kaikki jäsenet
+            guildCache.members.cache.forEach(member => checkMemberAgainstWatchlist(member));
+
+            console.log("✅ Watchlist on nyt aktiivinen");
         } catch (err) {
-            console.error("Error fetching guild or members:", err);
+            console.error("❌ Virhe watchlistin käynnistyksessä:", err);
         }
-
-        await scanWatchlist();
-
-        // Käy läpi kaikki jäsenet
-        guildCache?.members.cache.forEach(member => checkMemberAgainstWatchlist(member));
-    });
+    }
 
     // --- Uusi jäsen ---
     client.on("guildMemberAdd", async (member) => {
-        console.log(`🆕 New member joined: ${member.user.tag}`);
         await checkMemberAgainstWatchlist(member);
     });
 
     // --- Uusi viesti watchlist-kanavalla ---
     client.on("messageCreate", async (message) => {
-        if (message.channel.id !== WATCHLIST_CHANNEL_ID) return;
-        if (message.author.bot) return;
-
-        console.log(`📩 Message received in watchlist channel from ${message.author.tag}: "${message.content}"`);
-
+        if (message.channel.id !== WATCHLIST_CHANNEL_ID || message.author.bot) return;
         const cleaned = message.content.trim().toLowerCase().replace(/\s+/g, " ");
         if (cleaned.length === 0) return;
-
         watchlist.add(cleaned);
-        console.log(`📝 Uusi watchlist-merkintä: "${cleaned}"`);
-
-        // Käy läpi kaikki guildin jäsenet ilman fetchiä
+        console.log(`➕ Uusi watchlist-merkintä: "${cleaned}"`);
         guildCache?.members.cache.forEach(member => checkMemberAgainstWatchlist(member));
     });
 
-    return {
-        scanWatchlist,
-        checkMemberAgainstWatchlist
-    };
+    return { startWatching, checkMemberAgainstWatchlist, scanWatchlist };
 };
