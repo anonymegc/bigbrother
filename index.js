@@ -54,12 +54,12 @@ process.on('uncaughtException', (error) => {
 // -----------------------------
 // LADATAAN WATCHLIST
 // -----------------------------
-const watchlist = require('./functions/watchlist')(client); // Pienillä kirjaimilla
+const watchlist = require('./Functions/watchlist')(client);
 
 // -----------------------------
 // LADATAAN EVENTIT
 // -----------------------------
-const { loadEvents } = require('./handlers/eventHandler'); // Pienillä kirjaimilla
+const { loadEvents } = require('./Handlers/eventHandler'); 
 loadEvents(client);
 
 // -----------------------------
