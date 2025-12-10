@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const { Client, GatewayIntentBits, Partials, Collection } = require('discord.js');
-const config = require('./config.json'); // suhteellinen polku index.js:stä
+const config = require('./config.json');
 
 // -----------------------------
 // EXPRESS KEEP-ALIVE
@@ -52,13 +52,13 @@ process.on('uncaughtException', (error) => {
 });
 
 // -----------------------------
-// LADATAAN WATCHLIST & TICKET
+// WATCHLIST & TICKET
 // -----------------------------
-const watchlist = require('./Functions/watchlist')(client);
+const watchlist = require('./Functions/watchlist'); // ← EI SULKUJA
 const ticket = require('./Functions/ticket');
 
 // -----------------------------
-// LADATAAN EVENTIT
+// EVENTIT
 // -----------------------------
 const { loadEvents } = require('./Handlers/eventHandler');
 loadEvents(client);
@@ -69,45 +69,39 @@ loadEvents(client);
 client.once("ready", async () => {
     console.log(`Logged in as ${client.user.tag}`);
 
-    // Hae guild ja jäsenten cache ensin
     const guild = await client.guilds.fetch(config.guildID);
     await guild.members.fetch();
+
     watchlist.setGuildCache(guild);
-    console.log("Guild jäsenten cache haettu");
+    console.log("Guild jäsenten cache haettu.");
 
-    // Päivitä watchlist kanavasta
-    if (watchlist && typeof watchlist.scanWatchlist === "function") {
-        await watchlist.scanWatchlist();
-        console.log("Watchlist kanava skannattu ja jäsenet tarkistettu");
-    }
+    await watchlist.scanWatchlist(client);
+    console.log("Watchlist skannattu.");
 
-    // Käydään läpi kaikki jäsenet
-    guild.members.cache.forEach(member => watchlist.checkMemberAgainstWatchlist(member));
-    console.log("Watchlist tarkistus olemassa oleville jäsenille valmis");
+    guild.members.cache.forEach(member =>
+        watchlist.checkMemberAgainstWatchlist(client, member)
+    );
+
+    console.log("Watchlist tarkistus valmis.");
 });
 
 // -----------------------------
-// BOT EVENTIT
+// EVENTIT
 // -----------------------------
 client.on("guildMemberAdd", async (member) => {
-    console.log(`Uusi jäsen liittyi: ${member.user.tag}`);
-    await watchlist.checkMemberAgainstWatchlist(member);
+    await watchlist.checkMemberAgainstWatchlist(client, member);
 });
 
 client.on("messageCreate", async (message) => {
-    // --- Watchlist-kanava ---
-    await watchlist.handleNewWatchlistMessage(message);
-
-    // --- Ticket-kanava & interaktiot ---
+    await watchlist.handleNewWatchlistMessage(client, message);
     await ticket.handleInteraction(message);
 });
 
-// --- Kaikki interactionCreate-eventit Ticket.js:lle ---
 client.on('interactionCreate', async (interaction) => {
     await ticket.handleInteraction(interaction);
 });
 
 // -----------------------------
-// BOT LOGIN
+// LOGIN
 // -----------------------------
 client.login(process.env.TOKEN);
