@@ -77,14 +77,15 @@ client.once("ready", async () => {
         // --- Lähetä ticket-panel ---
         const channel = await guild.channels.fetch(config.channels.ticketsChannel);
         await ticket.sendTicketPanel(channel);
-        console.log("Ticket-panel lähetetty kanavalle.");
+        console.log("🎫 Ticket-panel lähetetty kanavalle.");
 
         // --- Käynnistä watchlist vasta ticketin jälkeen ---
         try {
-            require('./Functions/watchlist')(client);
-            console.log("Watchlist moduuli käynnistetty ready-eventissä");
+            const watchlistModule = require('./Functions/watchlist')(client);
+            await watchlistModule.startWatching(); // <-- tärkeä
+            console.log("👁️ Watchlist moduuli käynnistetty");
         } catch (err) {
-            console.error("Watchlist-moduulin käynnistys epäonnistui:", err);
+            console.error("❌ Watchlist-moduulin käynnistys epäonnistui:", err);
         }
 
     } catch (err) {
