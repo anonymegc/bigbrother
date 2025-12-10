@@ -8,7 +8,7 @@ const {
     EmbedBuilder 
 } = require('discord.js');
 
-const { loadEvents } = require("./Handlers/eventHandler");
+const { loadEvents } = require("./handlers/eventHandler");
 
 // -----------------------------
 // EXPRESS KEEP-ALIVE (Render yms.)
@@ -24,13 +24,10 @@ app.listen(PORT, () => console.log(`🌐 HTTP server alive on port ${PORT}`));
 // -----------------------------
 const client = new Client({
     intents: [
-        // index.js intentit
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMembers,
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
-
-        // main.js intentit
         GatewayIntentBits.DirectMessages,
         GatewayIntentBits.GuildMessageReactions,
         GatewayIntentBits.GuildModeration,
@@ -46,7 +43,9 @@ const client = new Client({
     ]
 });
 
+// -----------------------------
 // EXPORT (jos joku tiedosto tarvitsee)
+// -----------------------------
 module.exports = client;
 
 // -----------------------------
@@ -66,6 +65,11 @@ process.on('uncaughtException', (error) => {
 });
 
 // -----------------------------
+// LADATAAN WATCHLIST
+// -----------------------------
+const watchlist = require("./functions/watchlist")(client);
+
+// -----------------------------
 // LADATAAN EVENTIT
 // -----------------------------
 loadEvents(client);
@@ -81,10 +85,12 @@ const GUILD_ID = process.env.GUILD_ID;
 client.once("ready", async () => {
     console.log(`Logged in as ${client.user.tag}`);
 
-    if (typeof scanWatchlist === "function") {
-        await scanWatchlist();
+    // Päivitetään watchlist kanavasta
+    if (watchlist && typeof watchlist.scanWatchlist === "function") {
+        await watchlist.scanWatchlist();
     }
 
+    // Haetaan guild ja jäsenet cacheen
     const guildCache = await client.guilds.fetch(GUILD_ID);
     await guildCache.members.fetch();
 });
