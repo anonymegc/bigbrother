@@ -10,6 +10,7 @@ const {
 const config = require('../config.json');
 
 module.exports = {
+
     // --- Lähetä allowlist panel ---
     async sendAllowlistPanel(channel) {
         const embed = new EmbedBuilder()
@@ -31,6 +32,7 @@ module.exports = {
     async handleInteraction(interaction) {
         try {
             if (interaction.isButton() && interaction.customId === 'create_allowlist') {
+                // --- Ei deferUpdate, vaan näytetään modal suoraan ---
                 await this.showAllowlistModal(interaction);
                 return;
             }
@@ -74,6 +76,8 @@ module.exports = {
         );
 
         modal.addComponents(...rows);
+
+        // --- Tämä näyttää modaalin ja Discord ei näytä "interaction failed" ---
         await interaction.showModal(modal);
     },
 
@@ -121,6 +125,7 @@ module.exports = {
         await sentMessage.react('👍');
         await sentMessage.react('👎');
 
+        // --- Vastaa käyttäjälle modaalin lähetyksen jälkeen ---
         if (!interaction.replied) {
             await interaction.reply({ content: '✅ Hakemus lähetetty onnistuneesti!', ephemeral: true });
         }
