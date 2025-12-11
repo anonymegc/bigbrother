@@ -45,12 +45,8 @@ client.commands = new Collection();
 // -----------------------------
 // ERROR HANDLING
 // -----------------------------
-process.on("unhandledRejection", (reason, promise) => {
-    console.error("Unhandled Rejection |", reason, promise);
-});
-process.on('uncaughtException', (error) => {
-    console.error('Unhandled Exception:', error);
-});
+process.on("unhandledRejection", (reason, promise) => console.error("Unhandled Rejection |", reason, promise));
+process.on('uncaughtException', (error) => console.error('Unhandled Exception:', error));
 
 // -----------------------------
 // TICKET
@@ -73,12 +69,16 @@ client.once("ready", async () => {
         // --- Hae guild ja jäsenet ---
         const guild = await client.guilds.fetch(config.guildID);
         await guild.members.fetch();
-        console.log("📦 Guild ja jäsenet haettu");
+        console.log(`📦 Guild haettu: ${guild.name}, jäseniä: ${guild.memberCount}`);
 
         // --- Lähetä ticket-panel ---
-        const channel = await guild.channels.fetch(config.ticket.ticketPanelChannelId);
-        await ticket.sendTicketPanel(channel);
-        console.log("🎫 Ticket-panel lähetetty kanavalle");
+        const ticketChannel = await guild.channels.fetch(config.ticket.ticketPanelChannelId);
+        if (ticketChannel) {
+            await ticket.sendTicketPanel(ticketChannel);
+            console.log("🎫 Ticket-panel lähetetty kanavalle");
+        } else {
+            console.warn("⚠️ Ticket-panel -kanavaa ei löytynyt configista!");
+        }
 
         // --- Käynnistä watchlist vasta ticketin jälkeen ---
         try {
@@ -116,8 +116,6 @@ client.on('interactionCreate', async (interaction) => {
 // -----------------------------
 // LOGIN
 // -----------------------------
-client.login(process.env.TOKEN).then(() => {
-    console.log("🔑 Bot kirjautunut sisään, TOKEN käytetty");
-}).catch(err => {
-    console.error("❌ Bot kirjautuminen epäonnistui:", err);
-});
+client.login(process.env.TOKEN)
+    .then(() => console.log("🔑 Bot kirjautunut sisään, TOKEN käytetty"))
+    .catch(err => console.error("❌ Bot kirjautuminen epäonnistui:", err));
