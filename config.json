@@ -4,7 +4,11 @@
         "logChannel": "1447911516622819378",
         "twitchalerts": "1447911601079324813",
         "watchlistChannel": "1448326436833202378",
-        "alertChannel": "1448326498451849338"
+        "alertChannel": "1448326498451849338",
+        "haeAllowlistChannel": "1448325480200667259",
+        "allowlistChannel": "1448325608936444024",
+        "hylatytChannel": "1448325528015732858",
+        "hyvaksytytChannel": "1448325510219170004"
     },
     "ticket": {
         "ticketCategoryId": "1447956027965440071",
