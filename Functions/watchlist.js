@@ -38,6 +38,7 @@ module.exports = (client) => {
     // --- Tarkista jäsen watchlistiä vasten ---
     async function checkMemberAgainstWatchlist(member) {
         if (!member?.user) return;
+
         const username = member.user.username.toLowerCase();
         const tag = member.user.tag.toLowerCase();
         const id = member.id;
@@ -46,7 +47,8 @@ module.exports = (client) => {
             const key = `${id}-${entry}`;
             if (alreadyAlerted.has(key)) continue;
 
-            if (entry === id || username.includes(entry) || tag.includes(entry)) {
+            // Vain täsmälleen sama nimi, tag tai ID
+            if (entry === id || entry === username || entry === tag) {
                 console.log(`⚠️ ${member.user.tag} vastaa watchlistia: ${entry}`);
                 await sendAlert(member, entry);
                 alreadyAlerted.add(key);
@@ -69,7 +71,6 @@ module.exports = (client) => {
             }
 
             console.log(`👁️ Watchlist päivitetty: ${watchlist.size} merkintää`);
-
         } catch (err) {
             console.error("❌ Error scanning watchlist:", err);
         }
@@ -109,7 +110,6 @@ module.exports = (client) => {
             });
 
             console.log("✅ Watchlist-tarkkailu käynnistetty!");
-
         } catch (err) {
             console.error("❌ Watchlist startWatching epäonnistui:", err);
         }
