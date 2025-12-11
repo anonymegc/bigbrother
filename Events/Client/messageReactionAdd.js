@@ -16,7 +16,7 @@ module.exports = {
             try {
                 await reaction.fetch();
             } catch (err) {
-                console.error("Error fetching reaction:", err);
+                console.error("❌ Error fetching reaction:", err);
                 return;
             }
         }
@@ -33,6 +33,9 @@ module.exports = {
         const upvotecount = reaction.message.reactions.cache.get(upvote)?.count - 1 || 0;
         const downvotecount = reaction.message.reactions.cache.get(downvote)?.count - 1 || 0;
         const totalvotecount = upvotecount + downvotecount;
+
+        console.log(`🗳️ Hakemus ${reaction.message.id} saanut uuden reaktion (${reaction.emoji.name}) käyttäjältä ${user.tag}`);
+        console.log(`📊 Upvote: ${upvotecount}, Downvote: ${downvotecount}, Total: ${totalvotecount}`);
 
         // --- Päätös, kun äänestykset täyttävät ehdot (esim. vähintään 3 ääntä) ---
         if (totalvotecount >= 3) {
@@ -54,10 +57,15 @@ module.exports = {
 
                 try {
                     await applicant.send("🎉 Onnittelut, hakemuksesi on hyväksytty! Seuraavaksi pääset odottamaan haastattelua.");
-                } catch {}
+                } catch {
+                    console.warn(`⚠️ Ei voitu lähettää DM hakijalle ${applicant.user.tag}`);
+                }
 
                 const role = guild.roles.cache.get(config.roles.roleAlHaastattelu);
                 if (role) await applicant.roles.add(role);
+
+                console.log(`✅ Hakemus hyväksytty: ${applicant.user.tag}`);
+
             } else {
                 // --- Hylkää ---
                 const hylatyt = guild.channels.cache.get(config.channels.hylatytChannel);
@@ -65,11 +73,16 @@ module.exports = {
 
                 try {
                     await applicant.send("❌ Pahoittelut, tällä kertaa arpaonni ei suosinut sinua. Älä lannistu, aina voi hakea uutta!");
-                } catch {}
+                } catch {
+                    console.warn(`⚠️ Ei voitu lähettää DM hakijalle ${applicant.user.tag}`);
+                }
+
+                console.log(`❌ Hakemus hylätty: ${applicant.user.tag}`);
             }
 
             // --- Poista alkuperäinen viesti allowlistChannelista ---
             await reaction.message.delete().catch(() => {});
+            console.log(`🗑️ Alkuperäinen hakemusviesti poistettu: ${reaction.message.id}`);
         }
     }
 };
