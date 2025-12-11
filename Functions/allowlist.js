@@ -32,6 +32,8 @@ module.exports = {
     async handleInteraction(interaction) {
         try {
             if (interaction.isButton() && interaction.customId === 'create_allowlist') {
+                // --- Varmistetaan, ettei interaction epäonnistu ---
+                await interaction.deferUpdate();
                 await this.showAllowlistModal(interaction);
             }
 
@@ -40,6 +42,9 @@ module.exports = {
             }
         } catch (err) {
             console.error('⚠️ Virhe allowlist handleInteractionissa:', err);
+            if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply({ content: '❌ Tapahtui virhe interaktiossa.', ephemeral: true });
+            }
         }
     },
 
@@ -70,6 +75,8 @@ module.exports = {
         );
 
         modal.addComponents(...rows);
+
+        // --- Näytä modal ---
         await interaction.showModal(modal);
     },
 
@@ -83,18 +90,16 @@ module.exports = {
         const character = interaction.fields.getTextInputValue('character');
         const free = interaction.fields.getTextInputValue('free');
 
-        // --- Lähetä hakijan DM ---
         try {
             await interaction.user.send('✅ Hakemuksesi on otettu vastaan. Henkilökunta käsittelee tämän mahdollisimman pian!');
-        } catch (err) {
-            console.warn(`⚠️ Ei voitu lähettää DM hakijalle ${interaction.user.tag}:`, err);
-        }
+        } catch {}
 
-        // --- Lähetä hakemus allowlistChannel ---
         const allowlistChannel = interaction.guild.channels.cache.get(config.channels.allowlistChannel);
         if (!allowlistChannel) {
             console.error('⚠️ allowlistChannel ei löytynyt configista!');
-            await interaction.reply({ content: '❌ Tapahtui virhe, kanavaa ei löydy!', ephemeral: true });
+            if (!interaction.replied) {
+                await interaction.reply({ content: '❌ Tapahtui virhe, kanavaa ei löydy!', ephemeral: true });
+            }
             return;
         }
 
@@ -114,17 +119,12 @@ module.exports = {
             .setFooter({ text: `Hakija: ${interaction.user.id}` })
             .setTimestamp();
 
-        try {
-            const sentMessage = await allowlistChannel.send({ embeds: [embed] });
-            // --- Lisää heti 👍 ja 👎 reaktiot ---
-            await sentMessage.react('👍');
-            await sentMessage.react('👎');
+        const sentMessage = await allowlistChannel.send({ embeds: [embed] });
+        await sentMessage.react('👍');
+        await sentMessage.react('👎');
 
-            // --- Vastaa käyttäjälle että modal hyväksytty ---
+        if (!interaction.replied) {
             await interaction.reply({ content: '✅ Hakemus lähetetty onnistuneesti!', ephemeral: true });
-        } catch (err) {
-            console.error('⚠️ Virhe allowlist-viestin lähetyksessä:', err);
-            await interaction.reply({ content: '❌ Tapahtui virhe hakemusta lähetettäessä.', ephemeral: true });
         }
     }
 };
