@@ -31,14 +31,16 @@ module.exports = {
     // --- Käsittele interaction ---
     async handleInteraction(interaction) {
         try {
+            // --- Button click ---
             if (interaction.isButton() && interaction.customId === 'create_allowlist') {
-                // --- Varmistetaan, ettei interaction epäonnistu ---
-                await interaction.deferUpdate();
-                await this.showAllowlistModal(interaction);
+                await this.showAllowlistModal(interaction); // deferUpdate poistettu
+                return;
             }
 
+            // --- Modal submit ---
             if (interaction.isModalSubmit() && interaction.customId === 'allowlist_modal') {
                 await this.handleModalSubmit(interaction);
+                return;
             }
         } catch (err) {
             console.error('⚠️ Virhe allowlist handleInteractionissa:', err);
@@ -75,8 +77,6 @@ module.exports = {
         );
 
         modal.addComponents(...rows);
-
-        // --- Näytä modal ---
         await interaction.showModal(modal);
     },
 
