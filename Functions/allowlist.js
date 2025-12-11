@@ -26,24 +26,6 @@ module.exports = {
         await channel.send({ embeds: [embed], components: [row] });
     },
 
-    // --- Käsittele napin painallus tai modal submit ---
-    async handleInteraction(interaction) {
-        try {
-            if (interaction.isButton() && interaction.customId === 'create_allowlist') {
-                // --- Näytä modal heti napin painalluksesta ---
-                await this.showAllowlistModal(interaction);
-            } 
-            else if (interaction.isModalSubmit() && interaction.customId === 'allowlist_modal') {
-                await this.handleModalSubmit(interaction);
-            }
-        } catch (err) {
-            console.error('⚠️ Virhe allowlist handleInteractionissa:', err);
-            if (!interaction.replied && !interaction.deferred) {
-                await interaction.reply({ content: '❌ Tapahtui virhe interaktiossa.', ephemeral: true });
-            }
-        }
-    },
-
     // --- Näytä modal ---
     async showAllowlistModal(interaction) {
         const modal = new ModalBuilder()
@@ -72,58 +54,66 @@ module.exports = {
 
         modal.addComponents(...rows);
 
-        // --- Tämä avaa modalin heti ---
+        // --- Näytä modal suoraan ---
         await interaction.showModal(modal);
     },
 
     // --- Käsittele modal submit ---
     async handleModalSubmit(interaction) {
-        const discordName = interaction.fields.getTextInputValue('discordName');
-        const realAge = interaction.fields.getTextInputValue('realAge');
-        const experience = interaction.fields.getTextInputValue('experience');
-        const why = interaction.fields.getTextInputValue('why');
-        const aboutYou = interaction.fields.getTextInputValue('aboutYou');
-        const character = interaction.fields.getTextInputValue('character');
-        const free = interaction.fields.getTextInputValue('free');
-
-        // --- Lähetä hakemus allowlist-kanavalle ---
-        const allowlistChannel = interaction.guild.channels.cache.get(config.channels.allowlistChannel);
-        if (!allowlistChannel) {
-            console.error('⚠️ allowlistChannel ei löytynyt configista!');
-            if (!interaction.replied) {
-                await interaction.reply({ content: '❌ Tapahtui virhe, kanavaa ei löydy!', ephemeral: true });
-            }
-            return;
-        }
-
-        const embed = new EmbedBuilder()
-            .setTitle('Uusi Allowlist-hakemus')
-            .setColor('Green')
-            .setAuthor({ name: interaction.user.tag, iconURL: interaction.user.displayAvatarURL() })
-            .addFields(
-                { name: 'DC käyttäjänimi', value: discordName || 'Ei annettu' },
-                { name: 'IRL-ikä', value: realAge || 'Ei annettu' },
-                { name: 'Kokemus roolipelaamisesta', value: experience || 'Ei annettu' },
-                { name: 'Miksi haet allowlistiä', value: why || 'Ei annettu' },
-                { name: 'Itsestäsi roolipelaajana', value: aboutYou || 'Ei annettu' },
-                { name: 'Tuleva hahmo', value: character || 'Ei annettu' },
-                { name: 'Vapaa sana', value: free || 'Ei annettu' }
-            )
-            .setFooter({ text: `Hakija: ${interaction.user.id}` })
-            .setTimestamp();
-
-        const sentMessage = await allowlistChannel.send({ embeds: [embed] });
-        await sentMessage.react('👍');
-        await sentMessage.react('👎');
-
-        // --- Lähetä DM vain info, ei modalia ---
         try {
-            await interaction.user.send('✅ Hakemuksesi on otettu vastaan. Henkilökunta käsittelee tämän mahdollisimman pian!');
-        } catch {}
+            const discordName = interaction.fields.getTextInputValue('discordName');
+            const realAge = interaction.fields.getTextInputValue('realAge');
+            const experience = interaction.fields.getTextInputValue('experience');
+            const why = interaction.fields.getTextInputValue('why');
+            const aboutYou = interaction.fields.getTextInputValue('aboutYou');
+            const character = interaction.fields.getTextInputValue('character');
+            const free = interaction.fields.getTextInputValue('free');
 
-        // --- Varmista, että modal reply tulee, jotta interaction ei epäonnistu ---
-        if (!interaction.replied) {
-            await interaction.reply({ content: '✅ Hakemus lähetetty onnistuneesti!', ephemeral: true });
+            // --- Lähetä DM ilmoitus ---
+            try {
+                await interaction.user.send('✅ Hakemuksesi on otettu vastaan. Henkilökunta käsittelee tämän mahdollisimman pian!');
+            } catch {}
+
+            // --- Lähetä allowlist-kanavalle ---
+            const allowlistChannel = interaction.guild.channels.cache.get(config.channels.allowlistChannel);
+            if (!allowlistChannel) {
+                console.error('⚠️ allowlistChannel ei löytynyt configista!');
+                if (!interaction.replied) {
+                    await interaction.reply({ content: '❌ Tapahtui virhe, kanavaa ei löydy!', ephemeral: true });
+                }
+                return;
+            }
+
+            const embed = new EmbedBuilder()
+                .setTitle('Uusi Allowlist-hakemus')
+                .setColor('Green')
+                .setAuthor({ name: interaction.user.tag, iconURL: interaction.user.displayAvatarURL() })
+                .addFields(
+                    { name: 'DC käyttäjänimi', value: discordName || 'Ei annettu' },
+                    { name: 'IRL-ikä', value: realAge || 'Ei annettu' },
+                    { name: 'Kokemus roolipelaamisesta', value: experience || 'Ei annettu' },
+                    { name: 'Miksi haet allowlistiä', value: why || 'Ei annettu' },
+                    { name: 'Itsestäsi roolipelaajana', value: aboutYou || 'Ei annettu' },
+                    { name: 'Tuleva hahmo', value: character || 'Ei annettu' },
+                    { name: 'Vapaa sana', value: free || 'Ei annettu' }
+                )
+                .setFooter({ text: `Hakija: ${interaction.user.id}` })
+                .setTimestamp();
+
+            const sentMessage = await allowlistChannel.send({ embeds: [embed] });
+            await sentMessage.react('👍');
+            await sentMessage.react('👎');
+
+            // --- Varmista, että modal submit replyataan ---
+            if (!interaction.replied) {
+                await interaction.reply({ content: '✅ Hakemus lähetetty onnistuneesti!', ephemeral: true });
+            }
+
+        } catch (err) {
+            console.error('❌ Virhe handleModalSubmitissa:', err);
+            if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply({ content: '❌ Tapahtui virhe hakemusta käsiteltäessä.', ephemeral: true });
+            }
         }
     }
 };
