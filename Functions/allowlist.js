@@ -32,7 +32,8 @@ module.exports = {
             if (interaction.isButton() && interaction.customId === 'create_allowlist') {
                 // --- Näytä modal heti napin painalluksesta ---
                 await this.showAllowlistModal(interaction);
-            } else if (interaction.isModalSubmit() && interaction.customId === 'allowlist_modal') {
+            } 
+            else if (interaction.isModalSubmit() && interaction.customId === 'allowlist_modal') {
                 await this.handleModalSubmit(interaction);
             }
         } catch (err) {
@@ -85,11 +86,6 @@ module.exports = {
         const character = interaction.fields.getTextInputValue('character');
         const free = interaction.fields.getTextInputValue('free');
 
-        // --- Lähetä ilmoitus DM ---
-        try {
-            await interaction.user.send('✅ Hakemuksesi on otettu vastaan. Henkilökunta käsittelee tämän mahdollisimman pian!');
-        } catch {}
-
         // --- Lähetä hakemus allowlist-kanavalle ---
         const allowlistChannel = interaction.guild.channels.cache.get(config.channels.allowlistChannel);
         if (!allowlistChannel) {
@@ -120,6 +116,12 @@ module.exports = {
         await sentMessage.react('👍');
         await sentMessage.react('👎');
 
+        // --- Lähetä DM vain info, ei modalia ---
+        try {
+            await interaction.user.send('✅ Hakemuksesi on otettu vastaan. Henkilökunta käsittelee tämän mahdollisimman pian!');
+        } catch {}
+
+        // --- Varmista, että modal reply tulee, jotta interaction ei epäonnistu ---
         if (!interaction.replied) {
             await interaction.reply({ content: '✅ Hakemus lähetetty onnistuneesti!', ephemeral: true });
         }
