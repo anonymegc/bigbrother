@@ -48,7 +48,7 @@ process.on("unhandledRejection", (reason, promise) => console.error("Unhandled R
 process.on('uncaughtException', (error) => console.error('Unhandled Exception:', error));
 
 // -----------------------------
-// TICKET, WATCHLIST & ALLOWLIST
+// FUNCTIONS
 // -----------------------------
 const ticket = require('./Functions/ticket');
 const allowlist = require('./Functions/allowlist');
@@ -75,25 +75,21 @@ client.once("ready", async () => {
         if (ticketChannel) {
             await ticket.sendTicketPanel(ticketChannel);
             console.log("🎫 Ticket-panel lähetetty kanavalle");
-        } else {
-            console.warn("⚠️ Ticket-panel -kanavaa ei löytynyt configista!");
-        }
+        } else console.warn("⚠️ Ticket-panel -kanavaa ei löytynyt configista!");
 
         // --- Allowlist-panel ---
         const allowlistChannel = guild.channels.cache.get(config.channels.haeAllowlistChannel);
         if (allowlistChannel) {
             await allowlist.sendAllowlistPanel(allowlistChannel);
             console.log("📨 Allowlist-panel lähetetty kanavalle");
-        } else {
-            console.warn("⚠️ Allowlist-panel -kanavaa ei löytynyt configista!");
-        }
+        } else console.warn("⚠️ Allowlist-panel -kanavaa ei löytynyt configista!");
 
         // --- Watchlist ---
         try {
             const watchlistModule = require('./Functions/watchlist')(client);
             client.watchlist = watchlistModule;
             await watchlistModule.startWatching();
-            console.log("👁️ Watchlist moduuli käynnistetty - isoveli valvoo!");
+            console.log("👁️ Watchlist moduuli käynnistetty!");
         } catch (err) {
             console.error("❌ Watchlist-moduulin käynnistys epäonnistui:", err);
         }
@@ -116,14 +112,11 @@ client.on("messageCreate", async (message) => {
 
 client.on('interactionCreate', async (interaction) => {
     try {
-        // --- Allowlist button ---
-        if (interaction.isButton() && interaction.customId === 'create_allowlist') {
-            await allowlist.handleInteraction(interaction);
-            return;
-        }
-
-        // --- Allowlist modal ---
-        if (interaction.isModalSubmit() && interaction.customId === 'allowlist_modal') {
+        // --- Allowlist button tai modal ---
+        if (
+            (interaction.isButton() && interaction.customId === 'create_allowlist') ||
+            (interaction.isModalSubmit() && interaction.customId === 'allowlist_modal')
+        ) {
             await allowlist.handleInteraction(interaction);
             return;
         }
@@ -133,6 +126,9 @@ client.on('interactionCreate', async (interaction) => {
 
     } catch (err) {
         console.error("Error handleInteraction (interactionCreate):", err);
+        if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({ content: '❌ Tapahtui virhe interaktiossa.', ephemeral: true });
+        }
     }
 });
 
